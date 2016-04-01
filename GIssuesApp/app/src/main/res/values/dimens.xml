@@ -1,0 +1,24 @@
+<resources>
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+    <dimen name="fab_margin">16dp</dimen>
+
+    <dimen name="main_button_margin_top">16sp</dimen>
+    <dimen name="main_description_text_size">15sp</dimen>
+    <dimen name="main_version_text_size">12sp</dimen>
+
+    <dimen name="main_copyright_margin_bottom">16dp</dimen>
+    <dimen name="main_copyright_margin_top">1dp</dimen>
+
+    <dimen name="display_list_margin_top">10dp</dimen>
+
+    <dimen name="row_text_title_size">18sp</dimen>
+    <dimen name="row_text_description_size">12sp</dimen>
+
+    <dimen name="dialog_user_progressmax">75dp</dimen>
+
+    <dimen name="dialog_user_icon_max_height">75dp</dimen>
+
+    <dimen name="dialog_text_size">16sp</dimen>
+
+</resources>

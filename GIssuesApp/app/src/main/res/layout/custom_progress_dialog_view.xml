@@ -1,0 +1,47 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:layout_margin="10dp"
+    android:gravity="center"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/dialogicon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:contentDescription="@string/text_dialog_icon_description"
+            android:maxHeight="@dimen/dialog_user_icon_max_height"
+            android:scaleType="fitCenter"
+            android:src="@drawable/icon" />
+
+        <TextView
+            android:id="@+id/customProgressText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:gravity="center"
+            android:text="@string/text_dialog_checking_connection"
+            android:textColor="#000"
+            android:textSize="@dimen/dialog_text_size"
+            android:visibility="visible" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/pb_loading_user"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="@dimen/dialog_user_progressmax"
+        android:layout_height="@dimen/dialog_user_progressmax"
+        android:layout_gravity="center"
+        android:layout_marginTop="10dp"
+        android:visibility="visible" />
+
+</LinearLayout>

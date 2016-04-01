@@ -1,0 +1,57 @@
+<resources>
+    <string name="app_name">G Issues App</string>
+
+    <string name="text_main_version">Version 1.0</string>
+
+    <string name="text_main_copyright">© 2016 Omri Meshulam</string>
+
+    <string name="ping" translatable="false">/system/bin/ping -c 1 -w 10000 8.8.8.8</string>
+
+    <string name="repo_url" translatable="false">https://api.github.com/repos/rails/rails/issues</string>
+
+    <string name="text_main_title">G Issues App</string>
+    <string name="text_main_description">Press the button below to display the Rails organization’s rails GitHub repository issues and their comments.</string>
+    <string name="text_main_button">Display List</string>
+
+    <string name="text_display_title">Repo Issues List</string>
+
+    <string name="text_dialog_icon_description">Logo Icon</string>
+
+    <string name="text_dialog_checking_connection">Please Wait, Checking Connection…</string>
+    <string name="text_please_wait_downloading_list">Please Wait, Downloading List…</string>
+    <string name="text_please_wait_processing_list">Please Wait, Processing List…</string>
+    <string name="text_downloading_comments">Please Wait, Downloading Comments…</string>
+    <string name="text_processing_comments">Please Wait, Processing Comments…</string>
+
+    <string name="text_no_data_connection">No Data Connection. App has limited functionality.</string>
+
+    <string name="text_go_back">Go Back</string>
+
+    <string name="text_no_comments">There are no comments posted yet.</string>
+
+    <string name="text_error">Error</string>
+    <string name="text_error_contact">Error, please contact developer for support. Possibly exceeding local quota rate limit.</string>
+
+    <string name="text_unimplemented">Unimplemented</string>
+    <string name="text_options">Options</string>
+    <string name="text_settings">Settings</string>
+    <string name="text_help">Help</string>
+
+    <string name="json_title" translatable="false">title</string>
+    <string name="json_description" translatable="false">body</string>
+    <string name="json_updated_at" translatable="false">updated_at</string>
+    <string name="json_comments_url" translatable="false">comments_url</string>
+    <string name="json_comments_user" translatable="false">user</string>
+    <string name="json_comments_username" translatable="false">login</string>
+    <string name="json_comments_comment" translatable="false">body</string>
+    <string name="json_comments_num" translatable="false">comments</string>
+
+    <string name="extras_title" translatable="false">title</string>
+    <string name="extras_description" translatable="false">body</string>
+    <string name="extras_updated_at" translatable="false">updated_at</string>
+    <string name="extras_comments_url" translatable="false">comments_url</string>
+    <string name="extras_comments_comment" translatable="false">comments</string>
+    <string name="extras_comments_username" translatable="false">comments_user</string>
+    <string name="extras_comments_num" translatable="false">comments</string>
+
+</resources>
