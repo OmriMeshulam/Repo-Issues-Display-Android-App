@@ -17,11 +17,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        createToolbar();
+
+        findViewById(R.id.main_button_list).setOnClickListener(this);
+    }
+
+    private void createToolbar() {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setLogo(R.drawable.icon_draw);
-
-        findViewById(R.id.main_button_list).setOnClickListener(this);
     }
 
     @Override

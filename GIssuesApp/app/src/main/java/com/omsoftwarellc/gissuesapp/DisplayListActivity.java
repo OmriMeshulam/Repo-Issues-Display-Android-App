@@ -134,7 +134,7 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
      * A method to download json data from url
      * Returns JSON body string. Sets previous and next page strings within.
      */
-    private String downloadUrl(String strUrl) throws IOException {
+    private String downloadUrl(String strUrl, boolean gettingList) throws IOException {
         String data = "";
         InputStream iStream = null;
         HttpURLConnection urlConnection = null;
@@ -154,9 +154,11 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
 
             StringBuffer sb = new StringBuffer();
 
-            GitHubHeaderResponse response = new GitHubHeaderResponse(urlConnection);
-            mPrevPage = response.getPrevious();
-            mNextPage = response.getNext();
+            if(gettingList) {
+                GitHubHeaderResponse response = new GitHubHeaderResponse(urlConnection);
+                mPrevPage = response.getPrevious();
+                mNextPage = response.getNext();
+            }
 
             String line = "";
             while ((line = br.readLine()) != null) {
@@ -204,7 +206,7 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
         @Override
         protected String doInBackground(String... url) {
             try {
-                data = downloadUrl(url[0]);
+                data = downloadUrl(url[0], true);
             } catch (Exception e) {
                 //Log.d("Background Task", e.toString());
             }
@@ -462,7 +464,7 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
         @Override
         protected String doInBackground(String... url) {
             try {
-                data = downloadUrl(url[0]);
+                data = downloadUrl(url[0], false);
             } catch (Exception e) {
                 //Log.d("Background Task", e.toString());
             }
