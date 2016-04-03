@@ -9,12 +9,12 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -35,7 +35,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
-public class DisplayListActivity extends AppCompatActivity {
+public class DisplayListActivity extends AppCompatActivity implements View.OnClickListener {
 
     private ListView mListView;
     private DisplayListAdapter mAdapter;
@@ -52,31 +52,29 @@ public class DisplayListActivity extends AppCompatActivity {
 
     boolean mFirstTimeInOnResume;
 
+    String mNextPage, mPrevPage;
+
+    Button mBPrev, mBNext;
+
+    boolean mPageButtonClicked;
+
+    List<DisplayListAdapter.Item> rows;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_display_list);
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setHomeButtonEnabled(true);
-        getSupportActionBar().setLogo(R.drawable.icon_draw);
-        getSupportActionBar().setTitle(getResources().getString(R.string.text_display_title));
+        init();
 
-        mFirstTimeInOnResume = true;
+        createToolbar();
 
-        mListView = (ListView) findViewById(R.id.display_list_view);
-        mAdapter = new DisplayListAdapter();
-
-        mProgressDialog = new CustomProgressDialog(DisplayListActivity.this);
         mProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
             @Override
             public void onCancel(DialogInterface dialog) {
                 onBackPressed();
             }
         });
-
         mProgressDialog.show();
 
     }
@@ -86,12 +84,12 @@ public class DisplayListActivity extends AppCompatActivity {
 
         if (mFirstTimeInOnResume) {
             mFirstTimeInOnResume = false;
+
             if (!isConnected(this)) {
                 mProgressDialog.dismiss();
                 createAlert(true);
             } else {
                 mProgressDialog.mMessage.setText(getResources().getString(R.string.text_please_wait_downloading_list));
-
                 final GetListTask listTask = new GetListTask();
                 String repoURL = getResources().getString(R.string.repo_url);
                 listTask.execute(repoURL);
@@ -134,6 +132,7 @@ public class DisplayListActivity extends AppCompatActivity {
 
     /**
      * A method to download json data from url
+     * Returns JSON body string. Sets previous and next page strings within.
      */
     private String downloadUrl(String strUrl) throws IOException {
         String data = "";
@@ -154,6 +153,10 @@ public class DisplayListActivity extends AppCompatActivity {
             BufferedReader br = new BufferedReader(new InputStreamReader(iStream));
 
             StringBuffer sb = new StringBuffer();
+
+            GitHubHeaderResponse response = new GitHubHeaderResponse(urlConnection);
+            mPrevPage = response.getPrevious();
+            mNextPage = response.getNext();
 
             String line = "";
             while ((line = br.readLine()) != null) {
@@ -176,6 +179,18 @@ public class DisplayListActivity extends AppCompatActivity {
         }
 
         return data;
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.display_next:
+                pageButtonClicked(mNextPage);
+                break;
+            case R.id.display_prev:
+                pageButtonClicked(mPrevPage);
+                break;
+        }
     }
 
     /**
@@ -260,12 +275,12 @@ public class DisplayListActivity extends AppCompatActivity {
                     mListItemsUploadDate = new Date[list.size()];
 
                     for (int i = 0; i < list.size(); i++) {
-                        mlistItemsTitles[i] = list.get(i).get(getResources().getString(R.string.extras_title));
-                        mListItemsDescriptions[i] = list.get(i).get(getResources().getString(R.string.extras_description));
-                        mListItemsCommentURLs[i] = list.get(i).get(getResources().getString(R.string.extras_comments_url));
-                        mListItemsCommentNums[i] = list.get(i).get(getResources().getString(R.string.extras_comments_num));
+                        mlistItemsTitles[i] = list.get(i).get(getResources().getString(R.string.key_title));
+                        mListItemsDescriptions[i] = list.get(i).get(getResources().getString(R.string.key_description));
+                        mListItemsCommentURLs[i] = list.get(i).get(getResources().getString(R.string.key_comments_url));
+                        mListItemsCommentNums[i] = list.get(i).get(getResources().getString(R.string.key_comments_num));
                         try {
-                            mListItemsUploadDate[i] = parse(list.get(i).get(getResources().getString(R.string.extras_updated_at)));
+                            mListItemsUploadDate[i] = parse(list.get(i).get(getResources().getString(R.string.key_updated_at)));
                         } catch (ParseException e) {
                             e.printStackTrace();
                         }
@@ -280,53 +295,80 @@ public class DisplayListActivity extends AppCompatActivity {
                     reorderList(mListItemsCommentNums, mIndexedOrder);
                     reorderList(mListItemsUploadDate, mIndexedOrder);
 
-                    List<DisplayListAdapter.Item> rows = new ArrayList<>();
+                    rows.clear();
 
                     for (int i = 0; i < mlistItemsTitles.length; i++) {
                         rows.add(new DisplayListAdapter.Item(mlistItemsTitles[i], mListItemsDescriptions[i]));
                     }
 
-                    mAdapter.setItems(rows);
+                    if(!mPageButtonClicked) {
 
-                    mListView.setAdapter(mAdapter);
+                        mAdapter.setItems(rows);
 
-                    mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                        @Override
-                        public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
+                        mListView.setAdapter(mAdapter);
 
-                            if (Integer.valueOf(mListItemsCommentNums[position]) == 0) {
-                                createCommentsDialog(getResources().getString(R.string.text_no_comments));
-                            } else {
-                                mProgressDialog.show();
-                                mProgressDialog.mMessage.setText(getResources().getString(R.string.text_dialog_checking_connection));
-                                if (!isConnected(DisplayListActivity.this)) {
-                                    createAlert(true);
+                        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                            @Override
+                            public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
+
+                                if (Integer.valueOf(mListItemsCommentNums[position]) == 0) {
+                                    createCommentsDialog(getResources().getString(R.string.text_no_comments));
                                 } else {
+                                    mProgressDialog.show();
+                                    mProgressDialog.mMessage.setText(getResources().getString(R.string.text_dialog_checking_connection));
+                                    if (!isConnected(DisplayListActivity.this)) {
+                                        createAlert(true);
+                                    } else {
 
-                                    mProgressDialog.mMessage.setText(getResources().getString(R.string.text_downloading_comments));
+                                        mProgressDialog.mMessage.setText(getResources().getString(R.string.text_downloading_comments));
 
-                                    final GetCommentsTask commentsTask = new GetCommentsTask();
+                                        final GetCommentsTask commentsTask = new GetCommentsTask();
 
-                                    String commentsURL = mListItemsCommentURLs[position];
+                                        String commentsURL = mListItemsCommentURLs[position];
 
-                                    commentsTask.execute(commentsURL);
+                                        commentsTask.execute(commentsURL);
 
-                                    mProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                                        @Override
-                                        public void onCancel(DialogInterface dialog) {
-                                            commentsTask.cancel(true);
-                                            mProgressDialog.dismiss();
-                                        }
-                                    });
+                                        mProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                                            @Override
+                                            public void onCancel(DialogInterface dialog) {
+                                                commentsTask.cancel(true);
+                                                mProgressDialog.dismiss();
+                                            }
+                                        });
+                                    }
                                 }
                             }
-                        }
-                    });
+                        });
+                    }else{
+                        mPageButtonClicked = false;
+                        mAdapter.notifyDataSetChanged();
+                        mListView.setSelection(0);
+                    }
+
+                    setPageButtons();
 
                     mProgressDialog.dismiss();
                 }
             } else {
                 createAlert(true);
+            }
+        }
+    }
+
+    private void setPageButtons() {
+        checkPageLink(mBPrev, mPrevPage);
+        checkPageLink(mBNext, mNextPage);
+
+    }
+
+    public void checkPageLink(Button btn, String pageLink){
+        if(pageLink != null){
+            if(btn.getVisibility() == View.GONE){
+                btn.setVisibility(View.VISIBLE);
+            }
+        }else{
+            if(btn.getVisibility() == View.VISIBLE){
+                btn.setVisibility(View.GONE);
             }
         }
     }
@@ -362,6 +404,7 @@ public class DisplayListActivity extends AppCompatActivity {
                 this.args = args;
             }
 
+            // -1 for more recent/descending
             public int compare(Integer in1, Integer in2) {
                 return -1 * args[in1].compareTo(args[in2]);
             }
@@ -371,11 +414,12 @@ public class DisplayListActivity extends AppCompatActivity {
         public int[] sort(T args[]) {
             Integer originIndex[] = new Integer[args.length];
             int returnVals[] = new int[args.length];
-            for (int i = 0; i < originIndex.length; i++) {
+            int n = originIndex.length;
+            for (int i = 0; i < n; i++) {
                 originIndex[i] = i;
             }
             Arrays.sort(originIndex, new IndirectCompareClass<T>(args));
-            for (int i = 0; i < originIndex.length; i++) {
+            for (int i = 0; i < n; i++) {
                 returnVals[i] = originIndex[i];
             }
             return returnVals;
@@ -408,7 +452,7 @@ public class DisplayListActivity extends AppCompatActivity {
     }
 
     /**
-     * GetListTask class downloads the list
+     * GetCommentsTask class downloads the comments
      */
     private class GetCommentsTask extends AsyncTask<String, Integer, String> {
 
@@ -445,7 +489,7 @@ public class DisplayListActivity extends AppCompatActivity {
     }
 
     /**
-     * ParseListTask class parses the List in JSON format
+     * ParseCommentsTask class parses the comments in JSON format
      */
     private class ParseCommentsTask extends AsyncTask<String, Integer, List<HashMap<String, String>>> {
 
@@ -489,8 +533,8 @@ public class DisplayListActivity extends AppCompatActivity {
                     int listSize = list.size();
 
                     for (int i = 0; i < listSize; i++) {
-                        mListItemsComments[i] = list.get(i).get(getResources().getString(R.string.extras_comments_comment));
-                        mListItemsCommentUserNames[i] = list.get(i).get(getResources().getString(R.string.extras_comments_username));
+                        mListItemsComments[i] = list.get(i).get(getResources().getString(R.string.key_comments_comment));
+                        mListItemsCommentUserNames[i] = list.get(i).get(getResources().getString(R.string.key_comments_username));
 
                         commentsSB.append(mListItemsCommentUserNames[i]).append(":\n").append(mListItemsComments[i]);
                         if (i < listSize - 1) {
@@ -572,6 +616,56 @@ public class DisplayListActivity extends AppCompatActivity {
         inflater.inflate(R.menu.toolbar_menu, menu);
 
         return true;
+    }
+
+    public void init(){
+        mListView = (ListView) findViewById(R.id.display_list_view);
+
+        mProgressDialog = new CustomProgressDialog(this);
+
+        mFirstTimeInOnResume = true;
+
+        mAdapter = new DisplayListAdapter();
+
+        mBPrev = (Button)findViewById(R.id.display_prev);
+        mBNext = (Button)findViewById(R.id.display_next);
+
+        mBPrev.setOnClickListener(this);
+        mBNext.setOnClickListener(this);
+
+        mPageButtonClicked = false;
+
+        rows = new ArrayList<>();
+
+    }
+
+    public void pageButtonClicked(String pageURL){
+        if (!isConnected(DisplayListActivity.this)) {
+            createAlert(true);
+        } else {
+            mPageButtonClicked = true;
+            mProgressDialog.show();
+            mProgressDialog.mMessage.setText(getResources().getString(R.string.text_please_wait_downloading_list));
+            final GetListTask listTask = new GetListTask();
+            String repoURL = pageURL;
+            listTask.execute(repoURL);
+            mProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                @Override
+                public void onCancel(DialogInterface dialog) {
+                    listTask.cancel(true);
+                    onBackPressed();
+                }
+            });
+        }
+    }
+
+    public void createToolbar() {
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeButtonEnabled(true);
+        getSupportActionBar().setLogo(R.drawable.icon_draw);
+        getSupportActionBar().setTitle(getResources().getString(R.string.text_display_title));
     }
 
 }

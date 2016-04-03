@@ -1,7 +1,6 @@
 package com.omsoftwarellc.gissuesapp;
 
 import android.content.Context;
-import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -71,11 +70,11 @@ public class GetListJSONParser {
             commentsURL = jEntry.getString((mContext.getResources().getString(R.string.json_comments_url)));
             numOfComments = jEntry.getString((mContext.getResources().getString(R.string.json_comments_num)));
 
-            entry.put(mContext.getResources().getString(R.string.extras_title), title);
-            entry.put(mContext.getResources().getString(R.string.extras_description), description);
-            entry.put(mContext.getResources().getString(R.string.extras_updated_at), uploadDate);
-            entry.put(mContext.getResources().getString(R.string.extras_comments_url), commentsURL);
-            entry.put(mContext.getResources().getString(R.string.extras_comments_num), numOfComments);
+            entry.put(mContext.getResources().getString(R.string.key_title), title);
+            entry.put(mContext.getResources().getString(R.string.key_description), description);
+            entry.put(mContext.getResources().getString(R.string.key_updated_at), uploadDate);
+            entry.put(mContext.getResources().getString(R.string.key_comments_url), commentsURL);
+            entry.put(mContext.getResources().getString(R.string.key_comments_num), numOfComments);
 
 
         } catch (JSONException e) {

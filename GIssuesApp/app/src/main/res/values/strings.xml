@@ -3,11 +3,11 @@
 
     <string name="text_main_version">Version 1.0</string>
 
-    <string name="text_main_copyright">© 2016 Omri Meshulam</string>
+    <string name="text_main_copyright">Created by Omri Meshulam</string>
 
     <string name="ping" translatable="false">/system/bin/ping -c 1 -w 10000 8.8.8.8</string>
 
-    <string name="repo_url" translatable="false">https://api.github.com/repos/rails/rails/issues</string>
+    <string name="repo_url" translatable="false">https://api.github.com/repos/rails/rails/issues?status=open</string>
 
     <string name="text_main_title">G Issues App</string>
     <string name="text_main_description">Press the button below to display the Rails organization’s rails GitHub repository issues and their comments.</string>
@@ -46,12 +46,12 @@
     <string name="json_comments_comment" translatable="false">body</string>
     <string name="json_comments_num" translatable="false">comments</string>
 
-    <string name="extras_title" translatable="false">title</string>
-    <string name="extras_description" translatable="false">body</string>
-    <string name="extras_updated_at" translatable="false">updated_at</string>
-    <string name="extras_comments_url" translatable="false">comments_url</string>
-    <string name="extras_comments_comment" translatable="false">comments</string>
-    <string name="extras_comments_username" translatable="false">comments_user</string>
-    <string name="extras_comments_num" translatable="false">comments</string>
+    <string name="key_title" translatable="false">title</string>
+    <string name="key_description" translatable="false">body</string>
+    <string name="key_updated_at" translatable="false">updated_at</string>
+    <string name="key_comments_url" translatable="false">comments_url</string>
+    <string name="key_comments_comment" translatable="false">comments</string>
+    <string name="key_comments_username" translatable="false">comments_user</string>
+    <string name="key_comments_num" translatable="false">comments</string>
 
 </resources>

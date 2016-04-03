@@ -65,8 +65,8 @@ public class GetCommentsJSONParser {
 
             comment = jEntry.getString(mContext.getResources().getString(R.string.json_comments_comment));
 
-            entry.put(mContext.getResources().getString(R.string.extras_comments_username), username);
-            entry.put(mContext.getResources().getString(R.string.extras_comments_comment), comment);
+            entry.put(mContext.getResources().getString(R.string.key_comments_username), username);
+            entry.put(mContext.getResources().getString(R.string.key_comments_comment), comment);
 
         } catch (JSONException e) {
             e.printStackTrace();
