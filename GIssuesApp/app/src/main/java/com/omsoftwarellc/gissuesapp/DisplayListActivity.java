@@ -35,7 +35,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
-public class DisplayListActivity extends AppCompatActivity implements View.OnClickListener {
+public class DisplayListActivity extends AppCompatActivity implements View.OnClickListener, ConnectionTestResponse {
+
+    public static final int INITIAL_LIST_RC = 0;
+    public static final int PAGE_LIST_RC = 1;
+    public static final int COMMENTS_RC = 2;
 
     private ListView mListView;
     private DisplayListAdapter mAdapter;
@@ -52,13 +56,15 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
 
     boolean mFirstTimeInOnResume;
 
-    String mNextPage, mPrevPage;
+    String mNextPage, mPrevPage, mPageURL;
 
     Button mBPrev, mBNext;
 
     boolean mPageButtonClicked;
 
     List<DisplayListAdapter.Item> rows;
+
+    int mListPosClick;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,50 +90,53 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
 
         if (mFirstTimeInOnResume) {
             mFirstTimeInOnResume = false;
-
-            if (!isConnected(this)) {
-                mProgressDialog.dismiss();
-                createAlert(true);
-            } else {
-                mProgressDialog.mMessage.setText(getResources().getString(R.string.text_please_wait_downloading_list));
-                final GetListTask listTask = new GetListTask();
-                String repoURL = getResources().getString(R.string.repo_url);
-                listTask.execute(repoURL);
-                mProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                    @Override
-                    public void onCancel(DialogInterface dialog) {
-                        listTask.cancel(true);
-                        onBackPressed();
-                    }
-                });
-            }
+            MyUtils.isConnected(this, INITIAL_LIST_RC); // calls back to connectionResponse
         }
     }
 
+    /*
+    mode 0 == initial list (first page),
+    1 == downloading another page
+    2 == downloading comments,
+     */
+
+
+    public void startGetList(String URL, final boolean goBack) {
+        mProgressDialog.mMessage.setText(getResources().getString(R.string.text_please_wait_downloading_list));
+        final GetListTask listTask = new GetListTask();
+        String repoURL = URL;
+        listTask.execute(repoURL);
+        mProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                listTask.cancel(true);
+                if (goBack) {
+                    onBackPressed();
+                } else {
+                    mProgressDialog.dismiss();
+                }
+            }
+        });
+    }
+
+    public void startGetComments() {
+        mProgressDialog.mMessage.setText(getResources().getString(R.string.text_downloading_comments));
+        final GetCommentsTask commentsTask = new GetCommentsTask();
+        String commentsURL = mListItemsCommentURLs[mListPosClick];
+        commentsTask.execute(commentsURL);
+        mProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                commentsTask.cancel(true);
+                mProgressDialog.dismiss();
+            }
+        });
+    }
 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-    }
-
-    public boolean isConnected(Activity mThis) {
-        ConnectivityManager connMgr = (ConnectivityManager) mThis.getSystemService(Activity.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-        if (networkInfo != null && networkInfo.isConnected()) {
-            Runtime runtime = Runtime.getRuntime();
-            try {
-                Process ipProcess = runtime.exec(mThis.getResources().getString(R.string.ping));
-                int exitValue = ipProcess.waitFor();
-                return (exitValue == 0);
-            } catch (IOException e) {
-                return false;
-            } catch (InterruptedException e) {
-                return false;
-            }
-        } else {
-            return false;
-        }
     }
 
     /**
@@ -154,7 +163,7 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
 
             StringBuffer sb = new StringBuffer();
 
-            if(gettingList) {
+            if (gettingList) {
                 GitHubHeaderResponse response = new GitHubHeaderResponse(urlConnection);
                 mPrevPage = response.getPrevious();
                 mNextPage = response.getNext();
@@ -185,13 +194,46 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
 
     @Override
     public void onClick(View v) {
-        switch (v.getId()){
+        switch (v.getId()) {
             case R.id.display_next:
                 pageButtonClicked(mNextPage);
                 break;
             case R.id.display_prev:
                 pageButtonClicked(mPrevPage);
                 break;
+        }
+    }
+
+    @Override
+    public void connectionResponse(boolean isConnected, int responseCode) {
+        if (!isConnected) {
+            switch (responseCode) {
+                case INITIAL_LIST_RC:
+                    mProgressDialog.dismiss();
+                    createAlert(true);
+                    break;
+                case PAGE_LIST_RC:
+                case COMMENTS_RC:
+                    createAlert(false);
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            switch (responseCode) {
+                case INITIAL_LIST_RC:
+                    startGetList(getResources().getString(R.string.repo_url), true);
+                    break;
+                case PAGE_LIST_RC:
+                    startGetList(mPageURL, false);
+                    break;
+                case COMMENTS_RC:
+                    startGetComments();
+                    break;
+                default:
+                    break;
+
+            }
         }
     }
 
@@ -268,92 +310,78 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
 
             if (list != null) {
                 if (list.size() == 0) {
-                    createAlert(true);
+                    createAlert(!mPageButtonClicked);
                 } else {
-                    mlistItemsTitles = new String[list.size()];
-                    mListItemsDescriptions = new String[list.size()];
-                    mListItemsCommentURLs = new String[list.size()];
-                    mListItemsCommentNums = new String[list.size()];
-                    mListItemsUploadDate = new Date[list.size()];
-
-                    for (int i = 0; i < list.size(); i++) {
-                        mlistItemsTitles[i] = list.get(i).get(getResources().getString(R.string.key_title));
-                        mListItemsDescriptions[i] = list.get(i).get(getResources().getString(R.string.key_description));
-                        mListItemsCommentURLs[i] = list.get(i).get(getResources().getString(R.string.key_comments_url));
-                        mListItemsCommentNums[i] = list.get(i).get(getResources().getString(R.string.key_comments_num));
-                        try {
-                            mListItemsUploadDate[i] = parse(list.get(i).get(getResources().getString(R.string.key_updated_at)));
-                        } catch (ParseException e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-                    mIndexedOrder = new IndirectSorter<Date>().sort(mListItemsUploadDate);
-
-                    // When lists scaled larger, running in different threads may be optimal
-                    reorderList(mlistItemsTitles, mIndexedOrder);
-                    reorderList(mListItemsDescriptions, mIndexedOrder);
-                    reorderList(mListItemsCommentURLs, mIndexedOrder);
-                    reorderList(mListItemsCommentNums, mIndexedOrder);
-                    reorderList(mListItemsUploadDate, mIndexedOrder);
-
-                    rows.clear();
-
-                    for (int i = 0; i < mlistItemsTitles.length; i++) {
-                        rows.add(new DisplayListAdapter.Item(mlistItemsTitles[i], mListItemsDescriptions[i]));
-                    }
-
-                    if(!mPageButtonClicked) {
-
-                        mAdapter.setItems(rows);
-
-                        mListView.setAdapter(mAdapter);
-
-                        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                            @Override
-                            public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
-
-                                if (Integer.valueOf(mListItemsCommentNums[position]) == 0) {
-                                    createCommentsDialog(getResources().getString(R.string.text_no_comments));
-                                } else {
-                                    mProgressDialog.show();
-                                    mProgressDialog.mMessage.setText(getResources().getString(R.string.text_dialog_checking_connection));
-                                    if (!isConnected(DisplayListActivity.this)) {
-                                        createAlert(true);
-                                    } else {
-
-                                        mProgressDialog.mMessage.setText(getResources().getString(R.string.text_downloading_comments));
-
-                                        final GetCommentsTask commentsTask = new GetCommentsTask();
-
-                                        String commentsURL = mListItemsCommentURLs[position];
-
-                                        commentsTask.execute(commentsURL);
-
-                                        mProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                                            @Override
-                                            public void onCancel(DialogInterface dialog) {
-                                                commentsTask.cancel(true);
-                                                mProgressDialog.dismiss();
-                                            }
-                                        });
-                                    }
-                                }
-                            }
-                        });
-                    }else{
-                        mPageButtonClicked = false;
-                        mAdapter.notifyDataSetChanged();
-                        mListView.setSelection(0);
-                    }
+                    createList(list);
 
                     setPageButtons();
 
                     mProgressDialog.dismiss();
                 }
             } else {
-                createAlert(true);
+                createAlert(!mPageButtonClicked);
             }
+        }
+    }
+
+    private void createList(List<HashMap<String, String>> list) {
+        mlistItemsTitles = new String[list.size()];
+        mListItemsDescriptions = new String[list.size()];
+        mListItemsCommentURLs = new String[list.size()];
+        mListItemsCommentNums = new String[list.size()];
+        mListItemsUploadDate = new Date[list.size()];
+
+        for (int i = 0; i < list.size(); i++) {
+            mlistItemsTitles[i] = list.get(i).get(getResources().getString(R.string.key_title));
+            mListItemsDescriptions[i] = list.get(i).get(getResources().getString(R.string.key_description));
+            mListItemsCommentURLs[i] = list.get(i).get(getResources().getString(R.string.key_comments_url));
+            mListItemsCommentNums[i] = list.get(i).get(getResources().getString(R.string.key_comments_num));
+            try {
+                mListItemsUploadDate[i] = parse(list.get(i).get(getResources().getString(R.string.key_updated_at)));
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }
+
+        mIndexedOrder = new IndirectSorter<Date>().sort(mListItemsUploadDate);
+
+        // When lists scaled larger, running in different threads may be optimal
+        reorderList(mlistItemsTitles, mIndexedOrder);
+        reorderList(mListItemsDescriptions, mIndexedOrder);
+        reorderList(mListItemsCommentURLs, mIndexedOrder);
+        reorderList(mListItemsCommentNums, mIndexedOrder);
+        reorderList(mListItemsUploadDate, mIndexedOrder);
+
+        rows.clear();
+
+        for (int i = 0; i < mlistItemsTitles.length; i++) {
+            rows.add(new DisplayListAdapter.Item(mlistItemsTitles[i], mListItemsDescriptions[i]));
+        }
+
+        if (!mPageButtonClicked) {
+
+            mAdapter.setItems(rows);
+
+            mListView.setAdapter(mAdapter);
+
+            mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
+
+                    if (Integer.valueOf(mListItemsCommentNums[position]) == 0) {
+                        createCommentsDialog(getResources().getString(R.string.text_no_comments));
+                    } else {
+                        mProgressDialog.show();
+                        mProgressDialog.mMessage.setText(getResources().getString(R.string.text_dialog_checking_connection));
+                        mListPosClick = position;
+                        MyUtils.isConnected(DisplayListActivity.this, COMMENTS_RC); // calls back to connectionResponse
+                    }
+                }
+            });
+        } else {
+            mPageButtonClicked = false;
+            mAdapter.notifyDataSetChanged();
+            mListView.setSelection(0);
         }
     }
 
@@ -363,13 +391,13 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
 
     }
 
-    public void checkPageLink(Button btn, String pageLink){
-        if(pageLink != null){
-            if(btn.getVisibility() == View.GONE){
+    public void checkPageLink(Button btn, String pageLink) {
+        if (pageLink != null) {
+            if (btn.getVisibility() == View.GONE) {
                 btn.setVisibility(View.VISIBLE);
             }
-        }else{
-            if(btn.getVisibility() == View.VISIBLE){
+        } else {
+            if (btn.getVisibility() == View.VISIBLE) {
                 btn.setVisibility(View.GONE);
             }
         }
@@ -526,34 +554,32 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
 
                 if (mListItemsComments.length == 0) {
                     createAlert(false);
-
                 } else {
-
-                    String comments;
-                    StringBuilder commentsSB = new StringBuilder();
-
-                    int listSize = list.size();
-
-                    for (int i = 0; i < listSize; i++) {
-                        mListItemsComments[i] = list.get(i).get(getResources().getString(R.string.key_comments_comment));
-                        mListItemsCommentUserNames[i] = list.get(i).get(getResources().getString(R.string.key_comments_username));
-
-                        commentsSB.append(mListItemsCommentUserNames[i]).append(":\n").append(mListItemsComments[i]);
-                        if (i < listSize - 1) {
-                            commentsSB.append("\n--------------------------\n");
-                        }
-                    }
-
-                    comments = commentsSB.toString();
-
-                    createCommentsDialog(comments);
-
+                    createCommentsDialog(createCommentString(list));
                     mProgressDialog.dismiss();
                 }
             } else {
                 createAlert(false);
             }
         }
+    }
+
+    private String createCommentString(List<HashMap<String, String>> list) {
+        StringBuilder commentsSB = new StringBuilder();
+
+        int listSize = list.size();
+
+        for (int i = 0; i < listSize; i++) {
+            mListItemsComments[i] = list.get(i).get(getResources().getString(R.string.key_comments_comment));
+            mListItemsCommentUserNames[i] = list.get(i).get(getResources().getString(R.string.key_comments_username));
+
+            commentsSB.append(mListItemsCommentUserNames[i]).append(":\n").append(mListItemsComments[i]);
+            if (i < listSize - 1) {
+                commentsSB.append("\n--------------------------\n");
+            }
+        }
+
+        return commentsSB.toString();
     }
 
     private void createCommentsDialog(String msg) {
@@ -569,6 +595,9 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
     }
 
     private void createAlert(final boolean goBack) {
+        if (mPageButtonClicked) {
+            mPageButtonClicked = false;
+        }
         new AlertDialog.Builder(DisplayListActivity.this)
                 .setTitle(getResources().getString(R.string.text_error))
                 .setMessage(getResources().getString(R.string.text_error_contact))
@@ -620,7 +649,7 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
         return true;
     }
 
-    public void init(){
+    public void init() {
         mListView = (ListView) findViewById(R.id.display_list_view);
 
         mProgressDialog = new CustomProgressDialog(this);
@@ -629,8 +658,8 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
 
         mAdapter = new DisplayListAdapter();
 
-        mBPrev = (Button)findViewById(R.id.display_prev);
-        mBNext = (Button)findViewById(R.id.display_next);
+        mBPrev = (Button) findViewById(R.id.display_prev);
+        mBNext = (Button) findViewById(R.id.display_next);
 
         mBPrev.setOnClickListener(this);
         mBNext.setOnClickListener(this);
@@ -638,27 +667,14 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
         mPageButtonClicked = false;
 
         rows = new ArrayList<>();
-
     }
 
-    public void pageButtonClicked(String pageURL){
-        if (!isConnected(DisplayListActivity.this)) {
-            createAlert(true);
-        } else {
-            mPageButtonClicked = true;
-            mProgressDialog.show();
-            mProgressDialog.mMessage.setText(getResources().getString(R.string.text_please_wait_downloading_list));
-            final GetListTask listTask = new GetListTask();
-            String repoURL = pageURL;
-            listTask.execute(repoURL);
-            mProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                @Override
-                public void onCancel(DialogInterface dialog) {
-                    listTask.cancel(true);
-                    onBackPressed();
-                }
-            });
-        }
+    public void pageButtonClicked(String pageURL) {
+        mPageButtonClicked = true;
+        mProgressDialog.show();
+        mProgressDialog.mMessage.setText(getResources().getString(R.string.text_dialog_checking_connection));
+        mPageURL = pageURL;
+        MyUtils.isConnected(this, PAGE_LIST_RC); // calls back to connectionResponse
     }
 
     public void createToolbar() {
