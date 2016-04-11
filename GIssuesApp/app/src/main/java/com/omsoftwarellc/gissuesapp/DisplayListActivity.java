@@ -1,10 +1,7 @@
 package com.omsoftwarellc.gissuesapp;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -52,10 +49,6 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
 
     Date[] mListItemsUploadDate;
 
-    int mIndexedOrder[];
-
-    boolean mFirstTimeInOnResume;
-
     String mNextPage, mPrevPage, mPageURL;
 
     Button mBPrev, mBNext;
@@ -83,23 +76,8 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
         });
         mProgressDialog.show();
 
+        MyUtils.isConnected(this, INITIAL_LIST_RC); // calls back to connectionResponse
     }
-
-    public void onResume() {
-        super.onResume();
-
-        if (mFirstTimeInOnResume) {
-            mFirstTimeInOnResume = false;
-            MyUtils.isConnected(this, INITIAL_LIST_RC); // calls back to connectionResponse
-        }
-    }
-
-    /*
-    mode 0 == initial list (first page),
-    1 == downloading another page
-    2 == downloading comments,
-     */
-
 
     public void startGetList(String URL, final boolean goBack) {
         mProgressDialog.mMessage.setText(getResources().getString(R.string.text_please_wait_downloading_list));
@@ -205,9 +183,9 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
     }
 
     @Override
-    public void connectionResponse(boolean isConnected, int responseCode) {
+    public void connectionResponse(boolean isConnected, int requestCode) {
         if (!isConnected) {
-            switch (responseCode) {
+            switch (requestCode) {
                 case INITIAL_LIST_RC:
                     mProgressDialog.dismiss();
                     createAlert(true);
@@ -220,7 +198,7 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
                     break;
             }
         } else {
-            switch (responseCode) {
+            switch (requestCode) {
                 case INITIAL_LIST_RC:
                     startGetList(getResources().getString(R.string.repo_url), true);
                     break;
@@ -232,7 +210,6 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
                     break;
                 default:
                     break;
-
             }
         }
     }
@@ -343,14 +320,13 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
             }
         }
 
-        mIndexedOrder = new IndirectSorter<Date>().sort(mListItemsUploadDate);
-
+        int indexedOrder[] = new IndirectSorter<Date>().sort(mListItemsUploadDate);
         // When lists scaled larger, running in different threads may be optimal
-        reorderList(mlistItemsTitles, mIndexedOrder);
-        reorderList(mListItemsDescriptions, mIndexedOrder);
-        reorderList(mListItemsCommentURLs, mIndexedOrder);
-        reorderList(mListItemsCommentNums, mIndexedOrder);
-        reorderList(mListItemsUploadDate, mIndexedOrder);
+        reorderList(mlistItemsTitles, indexedOrder);
+        reorderList(mListItemsDescriptions, indexedOrder);
+        reorderList(mListItemsCommentURLs, indexedOrder);
+        reorderList(mListItemsCommentNums, indexedOrder);
+        reorderList(mListItemsUploadDate, indexedOrder);
 
         rows.clear();
 
@@ -653,8 +629,6 @@ public class DisplayListActivity extends AppCompatActivity implements View.OnCli
         mListView = (ListView) findViewById(R.id.display_list_view);
 
         mProgressDialog = new CustomProgressDialog(this);
-
-        mFirstTimeInOnResume = true;
 
         mAdapter = new DisplayListAdapter();
 

@@ -1,10 +1,10 @@
 package com.omsoftwarellc.gissuesapp;
 
 import android.app.Activity;
+import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
-import android.util.Log;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -18,28 +18,28 @@ public class MyUtils {
 
     private static final String TAG = "MyUtils";
 
-    public static void isConnected(Activity mThis, int responseCode) {
-        ConnectivityManager connMgr = (ConnectivityManager) mThis.getSystemService(Activity.CONNECTIVITY_SERVICE);
+    public static void isConnected(Context ctx, int requestCode) {
+        ConnectivityManager connMgr = (ConnectivityManager) ctx.getSystemService(Activity.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
         if (networkInfo != null && networkInfo.isConnected()) {
-            new CheckConnection(mThis, responseCode).execute();
+            new CheckConnection(ctx, requestCode).execute();
         } else {
-            if (mThis instanceof ConnectionTestResponse) {
-                ((ConnectionTestResponse) mThis).connectionResponse(false, responseCode);
+            if (ctx instanceof ConnectionTestResponse) {
+                ((ConnectionTestResponse) ctx).connectionResponse(false, requestCode);
             }
         }
     }
 
     static class CheckConnection extends AsyncTask<String, String, String> {
 
-        private Activity mThis;
+        private Context mContext;
         private int mURLResponseCode;
-        private int mActivityResponseCode;
+        private int mActivityRequestCode;
 
-        public CheckConnection(Activity mThis, int responseCode) {
+        public CheckConnection(Context ctx, int requestCode) {
+            this.mContext = ctx;
             mURLResponseCode = 0;
-            mActivityResponseCode = responseCode;
-            this.mThis = mThis;
+            mActivityRequestCode = requestCode;
         }
 
         @Override
@@ -72,19 +72,16 @@ public class MyUtils {
 
         @Override
         protected void onPostExecute(String file_url) {
-            if (mURLResponseCode == 204) {
-                //is connected
-                if (mThis instanceof ConnectionTestResponse) {
-                    ((ConnectionTestResponse) mThis).connectionResponse(true, mActivityResponseCode);
-                }
-            } else {
-                //No connection"
-                if (mThis instanceof ConnectionTestResponse) {
-                    ((ConnectionTestResponse) mThis).connectionResponse(false, mActivityResponseCode);
-                }
+            if (mContext instanceof ConnectionTestResponse) {
+                ((ConnectionTestResponse) mContext).connectionResponse((mURLResponseCode == 204), mActivityRequestCode);
             }
-            mThis = null;
+            destroyVars();
+        }
+
+        private void destroyVars() {
+            mContext = null;
+            mURLResponseCode = 0;
+            mActivityRequestCode = 0;
         }
     }
-
 }

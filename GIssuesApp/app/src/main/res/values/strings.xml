@@ -3,14 +3,12 @@
 
     <string name="text_main_version">Version 1.0</string>
 
-    <string name="text_main_copyright">Created by Omri Meshulam</string>
-
-    <string name="ping" translatable="false">/system/bin/ping -c 1 -w 10000 8.8.8.8</string>
+    <string name="text_main_copyright">Developed by Omri Meshulam</string>
 
     <string name="repo_url" translatable="false">https://api.github.com/repos/rails/rails/issues?status=open</string>
 
     <string name="text_main_title">G Issues App</string>
-    <string name="text_main_description">Press the button below to display the Rails organization’s rails GitHub repository issues and their comments.</string>
+    <string name="text_main_description">Press the button below to display the Rails organization’s rails GitHub repository most recently updated open status issues and their comments.</string>
     <string name="text_main_button">Display List</string>
 
     <string name="text_display_title">Repo Issues List</string>

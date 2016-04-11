@@ -63,7 +63,6 @@ public class GetListJSONParser {
         String numOfComments;
 
         try {
-
             title = jEntry.getString((mContext.getResources().getString(R.string.json_title)));
             description = jEntry.getString((mContext.getResources().getString(R.string.json_description)));
             uploadDate = jEntry.getString((mContext.getResources().getString(R.string.json_updated_at)));
@@ -75,7 +74,6 @@ public class GetListJSONParser {
             entry.put(mContext.getResources().getString(R.string.key_updated_at), uploadDate);
             entry.put(mContext.getResources().getString(R.string.key_comments_url), commentsURL);
             entry.put(mContext.getResources().getString(R.string.key_comments_num), numOfComments);
-
 
         } catch (JSONException e) {
             e.printStackTrace();
